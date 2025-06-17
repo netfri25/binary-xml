@@ -1,6 +1,4 @@
-CFLAGS += -std=c2x -Wall -Wextra -pedantic
-PREFIX ?= /usr
-BINDIR ?= $(PREFIX)/bin
+CFLAGS += -Wall -Wextra -pedantic
 CC     ?= gcc
 
 all: encode decode
