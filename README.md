@@ -5,7 +5,7 @@
 ## Getting Started
 
 #### Dependencies
- - gcc
+ - fasm
  - make
 
 #### Build
