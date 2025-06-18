@@ -1,13 +1,10 @@
-CFLAGS += -Wall -Wextra -pedantic
-CC     ?= gcc
-
 all: encode decode
 
-encode: encode.c Makefile
-	$(CC) -O3 $(CFLAGS) -o $@ $< $(LDFLAGS)
+encode: encode.asm Makefile
+	fasm $< $@
 
-decode: decode.c Makefile
-	$(CC) -O3 $(CFLAGS) -o $@ $< $(LDFLAGS)
+decode: decode.asm Makefile
+	fasm $< $@
 
 clean:
 	rm -f encode decode
