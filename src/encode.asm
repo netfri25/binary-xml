@@ -15,12 +15,12 @@ _start:
     mov rdx, 0  ; SEEK_SET
     call seek_stdin
 
-    ; mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd=0, offset=0)
+    ; mmap(NULL, len, PROT_READ, MAP_PRIVATE|MAP_SEQUENTIAL, fd=0, offset=0)
+    mov rax, 9      ; syscall: mmap
+    mov rdi, 0      ; addr = NULL
     mov rsi, [len]  ; length
     mov rdx, 1      ; PROT_READ
     mov r10, 0x8002 ; MAP_PRIVATE | MAP_SEQUENTIAL
-    mov rax, 9      ; syscall: mmap
-    mov rdi, 0      ; addr = NULL
     mov r8, 0       ; fd = 0 (stdin)
     mov r9, 0       ; offset = 0
     syscall
