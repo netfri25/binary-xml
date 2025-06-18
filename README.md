@@ -22,10 +22,10 @@ make clean
 
 #### Encoding
 ```shell
-cat <file-to-encode> | ./encode > <encoded-file>
+cat <file-to-encode> | build/encode > <encoded-file>
 ```
 
 #### Decoding
 ```shell
-cat <file-to-decode> | ./decode > <decoded-file>
+cat <file-to-decode> | build/decode > <decoded-file>
 ```

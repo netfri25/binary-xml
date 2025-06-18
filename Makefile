@@ -1,10 +1,15 @@
+BUILD_DIR = build
+
 all: encode decode
 
-encode: encode.asm Makefile
-	fasm $< $@
+$(BUILD_DIR): Makefile
+	mkdir $@
 
-decode: decode.asm Makefile
-	fasm $< $@
+encode: src/encode.asm Makefile build
+	fasm $< $(BUILD_DIR)/$@
+
+decode: src/decode.asm Makefile build
+	fasm $< $(BUILD_DIR)/$@
 
 clean:
 	rm -f encode decode
