@@ -1,49 +1,32 @@
 format ELF64 executable
 entry _start
 
+; 4 MiB
+BUF_CAP equ 0x400000
+
 segment readable executable
 _start:
     ; go to the end of redirected stdin and get the size
     mov rdx, 2  ; SEEK_END
     call seek_stdin
-    cmp rax, 0
-    jl .seek_error
-
     mov [len], rax
 
     ; seek to the start of redirected stdin
     mov rdx, 0  ; SEEK_SET
     call seek_stdin
-    cmp rax, 0
-    jl .seek_error
 
-    jmp .seek_success
-
-.seek_error:
-    mov rsi, seek_error_msg.text
-    mov rdx, seek_error_msg.len
-    jmp error
-
-.seek_success:
     ; mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd=0, offset=0)
-    mov rax, 9      ; syscall: mmap
-    mov rdi, 0      ; addr = NULL
     mov rsi, [len]  ; length
     mov rdx, 1      ; PROT_READ
-    mov r10, 0x8002 ; MAP_PRIVATE
+    mov r10, 0x8002 ; MAP_PRIVATE | MAP_SEQUENTIAL
+    mov rax, 9      ; syscall: mmap
+    mov rdi, 0      ; addr = NULL
     mov r8, 0       ; fd = 0 (stdin)
     mov r9, 0       ; offset = 0
     syscall
-
     cmp rax, 0
-    jge .mmap_success
-
-    mov rsi, mmap_error_msg.text
-    mov rdx, mmap_error_msg.len
-    jmp error
-
-.mmap_success:
-    mov rbx, rax
+    jl mmap_error
+    mov rbx, rax ; src mapped file
 
 .char_loop:
     ; iterate on each bit (from low to high) and print either "<one/>" or "<zero/>"
@@ -55,23 +38,17 @@ _start:
         jz .zero
 
         .one:
-            ; <syscall>(_, one.text, one.len)
             mov rsi, one.text
             mov rdx, one.len
             jmp .bit_loop_next
 
         .zero:
-            ; <syscall>(_, zero.text, zero.len)
             mov rsi, zero.text
             mov rdx, zero.len
             ; jmp .bit_loop_next
 
     .bit_loop_next:
-        ; write(stdout, _, _)
-        mov rax, 1
-        mov rdi, 1
-        syscall
-
+        call write_buffer
         shr byte [char], 1
         dec r15
         jnz .bit_loop
@@ -79,6 +56,8 @@ _start:
     inc rbx
     dec [len]
     jnz .char_loop
+
+    call flush_buffer
 
 ; jumpable. no need to `call exit`
 exit:
@@ -97,18 +76,90 @@ error:
     jmp exit
 
 ; rdx: seek direction (SEEK_END, SEEK_SET, SEEK_CUR)
+; rax => result of lseek
 seek_stdin:
     ; rax = lseek(stdin, 0, rdx)
     mov rax, 8
     mov rdi, 0
     mov rsi, 0
     syscall
+    cmp rax, 0
+    jl .error
     ret
+.error:
+    mov rsi, seek_error_msg.text
+    mov rdx, seek_error_msg.len
+    jmp error
+
+mmap_error:
+    mov rsi, mmap_error_msg.text
+    mov rdx, mmap_error_msg.len
+    jmp error
+
+; WARN: rdi, rcx, rax, rsi, rdx are overwritten
+; rsi: data.ptr
+; rdx: data.len
+write_buffer:
+.flush_loop:
+    ; calculate the leftover
+    mov rcx, BUF_CAP
+    sub rcx, [buffer_len]
+
+    ; if (len < leftover) break
+    cmp rdx, rcx
+    jb .end_flush_loop
+
+    ; len -= leftover
+    sub rdx, rcx
+
+    ; memcpy(buffer + buffer_len, data, leftover)
+    mov rdi, [buffer_len]
+    add rdi, buffer
+    cld
+    rep movsb
+
+    ; flush()
+    push rdx
+    push rsi
+    call flush_buffer
+    pop rsi
+    pop rdx
+
+    jmp .flush_loop
+
+.end_flush_loop:
+    ; memcpy(buffer + buffer_len, data, len)
+    mov rdi, [buffer_len]
+    add rdi, buffer
+    mov rcx, rdx
+    cld
+    rep movsb
+
+    ; buffer_len += len
+    add [buffer_len], rdx
+    ret
+
+; WARN: rax, rdi, rsi, rdx are overwritten
+flush_buffer:
+    ; write(stdout, buffer, buffer_len)
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, buffer
+    mov rdx, [buffer_len]
+    syscall
+    mov [buffer_len], 0 ; reset the buffer
+    ret
+
 
 segment readable writeable
 char db 0
 len dq 0
 error_code dq 0
+
+segment readable writeable
+align 4096
+buffer rb BUF_CAP
+buffer_len dq 0
 
 segment readable
 seek_error_msg:
