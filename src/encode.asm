@@ -4,6 +4,10 @@ entry _start
 ; 4 MiB
 BUF_CAP equ 0x400000
 
+segment readable writeable
+align 4096
+buffer rb BUF_CAP
+
 segment readable executable
 _start:
     ; go to the end of redirected stdin and get the size
@@ -155,10 +159,6 @@ segment readable writeable
 char db 0
 len dq 0
 error_code dq 0
-
-segment readable writeable
-align 4096
-buffer rb BUF_CAP
 buffer_len dq 0
 
 segment readable
