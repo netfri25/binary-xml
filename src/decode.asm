@@ -18,6 +18,7 @@ _start:
     mov rbx, [output_mapped_ptr] ; dst mapped addr
     mov rsi, [input_mapped_ptr]  ; src mapped addr
 
+    cld
 .read_byte:
     mov al, 0
     mov r9, 8
@@ -41,7 +42,6 @@ _start:
 
         .verify_input:
             sub [input_len], rcx
-            cld
             rep cmpsb
             jne .parse_error
 
@@ -51,12 +51,14 @@ _start:
 
     mov byte [rbx], al
     inc rbx
-    add [output_len], 1
     cmp [input_len], 0
     jl .parse_error
     jnz .read_byte
 
+    sub rbx, [output_mapped_ptr]
+    mov [output_len], rbx
     call deinit
+
     jmp exit
 
 .parse_error:
