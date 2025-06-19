@@ -3,103 +3,69 @@ entry _start
 
 segment readable executable
 _start:
+    call init_input
+
+    ; rdx:rax / rcx
+    mov rdx, 0
+    mov rax, [input_len]
+    mov rcx, 8 * one.len
+    div rcx
+    mov [output_max_len], rax
+
+    call init_output
+
+    mov rbx, [output_mapped_ptr] ; dst mapped addr
+    mov rsi, [input_mapped_ptr]  ; src mapped addr
+
 .read_byte:
-    mov byte [char], 0
-    ; counter for the bits loop
-    mov r8, 8
+    mov al, 0
+    mov r9, 8
     .read_bit:
-        ; rax = read(stdin, buffer, one.len)
-        mov rax, 0
-        mov rdi, 0
-        mov rsi, buffer
-
-        ; one.len is smaller than zero.len, and since over-read
-        ; will break the code then we under-read
-        mov rdx, one.len
-        syscall
-
-        cmp rax, 0
-        je .finish_reading
-        jl error
-
-        cmp [buffer + 1], 'o'
-        je .one
-        cmp [buffer + 1], 'z'
+        cmp byte [rsi+1], 'z'
         je .zero
-        jmp error
-
-        .one:
-            or byte [char], 1
-            mov rsi, one.text
-            mov rcx, one.len
-            jmp .compare_input
+        cmp byte [rsi+1], 'o'
+        je .one
+        jmp .parse_error
 
         .zero:
-            ; read all of the remaining text for zero
-            mov rax, 0
-            mov rdi, 0
-            lea rsi, [buffer + one.len]
-            mov rdx, zero.len - one.len
-            syscall
-
-            cmp rax, zero.len - one.len
-            jne error
-
-            mov rsi, zero.text
+            mov rdi, zero.text
             mov rcx, zero.len
-            ; jmp .compare_input
+            jmp .verify_input
 
-        .compare_input:
-            mov rdi, buffer
+        .one:
+            or al, 1
+            mov rdi, one.text
+            mov rcx, one.len
+            ; jmp .verify_input
+
+        .verify_input:
+            sub [input_len], rcx
             cld
             rep cmpsb
-            jne error
+            jne .parse_error
 
-        ror byte [char], 1
-        dec r8
+        ror al, 1
+        dec r9
         jnz .read_bit
 
-    ; write(stdout, &char, 1)
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, char
-    mov rdx, 1
-    syscall
-    jmp .read_byte
+    mov byte [rbx], al
+    inc rbx
+    add [output_len], 1
+    cmp [input_len], 0
+    jl .parse_error
+    jnz .read_byte
 
-.finish_reading:
-    cmp r8, 8
-    jne error
+    call deinit
     jmp exit
 
-error:
-    mov rax, 1
-    mov rdi, 2
-    mov rsi, error_msg.text
-    mov rdx, error_msg.len
-    syscall
-    mov [error_code], 1
-
-exit:
-    ; exit(0)
-    mov rax, 60
-    mov rdi, [error_code]
-    syscall
+.parse_error:
+    mov rsi, parse_error.text
+    mov rdx, parse_error.len
+    jmp error ; defined in `common.asm`
 
 segment readable
-error_msg:
-.text db "unable to parse file", 10
+parse_error:
+.text db "parse error", 10
 .len = $ - .text
 
-one:
-.text db "<one/>"
-.len = $ - .text
-
-zero:
-.text db "<zero/>"
-.len = $ - .text
-
-segment readable writeable
-char db 0
-error_code dq 0
-buffer rb zero.len
+include 'common.asm'
