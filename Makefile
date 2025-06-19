@@ -1,17 +1,16 @@
 BUILD_DIR = build
 
-all: encode decode
+all: $(BUILD_DIR)/encode $(BUILD_DIR)/decode
 
-$(BUILD_DIR): Makefile
-	mkdir $@
+$(BUILD_DIR)/encode: src/encode.asm src/common.asm Makefile
+	@mkdir -p $(BUILD_DIR)
+	fasm $< $@
 
-encode: src/encode.asm src/common.asm Makefile
-	fasm $< $(BUILD_DIR)/$@
-
-decode: src/decode.asm src/common.asm Makefile
-	fasm $< $(BUILD_DIR)/$@
+$(BUILD_DIR)/decode: src/decode.asm src/common.asm Makefile
+	@mkdir -p $(BUILD_DIR)
+	fasm $< $@
 
 clean:
-	rm -f encode decode
+	rm -f $(BUILD_DIR)/encode $(BUILD_DIR)/decode
 
 .PHONY: all clean
