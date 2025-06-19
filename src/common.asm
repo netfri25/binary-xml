@@ -1,3 +1,4 @@
+; vim: set ft=fasm:
 segment readable executable
 
 init_input:

@@ -1,3 +1,4 @@
+; vim: set ft=fasm:
 format ELF64 executable
 entry _start
 
