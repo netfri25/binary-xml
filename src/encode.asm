@@ -7,8 +7,8 @@ _start:
     call init_input
 
     ; calculate the maximum possible length for the output
-    mov rax, [input_len] ; len
-    mov rcx, 8 * zero.len ; max(zero.len, one.len) == zero.len
+    mov rax, [input_len]  ; len
+    mov rcx, 8 * zero.len ; max(zero.len, one.len) == zero.len + 2 bytes (alignment for <one/>)
     mul rcx
     mov [output_max_len], rax
 
@@ -26,20 +26,18 @@ _start:
         jz .zero
 
         .one:
-            mov rsi, one.text
+            mov rsi, [one.text]
             mov rcx, one.len
             jmp .bit_loop_next
 
         .zero:
-            mov rsi, zero.text
+            mov rsi, [zero.text]
             mov rcx, zero.len
             ; jmp .bit_loop_next
 
     .bit_loop_next:
-        add [output_len], rcx
-        ; TODO: maybe improve this using mov quad
-        cld
-        rep movsb
+        mov [rdi], rsi
+        add rdi, rcx
         shr al, 1
         dec r15
         jnz .bit_loop
@@ -47,6 +45,10 @@ _start:
     inc rbx
     dec [input_len]
     jnz .char_loop
+
+    sub rdi, [output_mapped_ptr]
+    mov [output_len], rdi
+    call deinit
 
     jmp exit
 
