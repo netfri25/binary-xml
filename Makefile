@@ -5,10 +5,10 @@ all: encode decode
 $(BUILD_DIR): Makefile
 	mkdir $@
 
-encode: src/encode.asm Makefile build
+encode: src/encode.asm src/common.asm Makefile
 	fasm $< $(BUILD_DIR)/$@
 
-decode: src/decode.asm Makefile build
+decode: src/decode.asm src/common.asm Makefile
 	fasm $< $(BUILD_DIR)/$@
 
 clean:
