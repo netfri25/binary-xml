@@ -18,12 +18,17 @@ _start:
     mov rbx, [output_mapped_ptr] ; dst mapped addr
     mov rsi, [input_mapped_ptr]  ; src mapped addr
 
-    mov rdx, [input_len]
+    ; points to the end of the input
+    mov rdx, rsi
+    add rdx, [input_len]
+
     cld
 .read_byte:
     mov al, 0
     mov r9, 8
     .read_bit:
+        cmp byte [rsi], '<'
+        jne .parse_error
         cmp byte [rsi+1], 'z'
         je .zero
         cmp byte [rsi+1], 'o'
@@ -31,18 +36,20 @@ _start:
         jmp .parse_error
 
         .zero:
-            mov rdi, zero.text
-            mov rcx, zero.len
+            mov rdi, zero.text + 2
+            mov rcx, zero.len - 2
             jmp .verify_input
 
         .one:
             or al, 1
-            mov rdi, one.text
-            mov rcx, one.len
+            mov rdi, one.text + 2
+            mov rcx, one.len - 2
             ; jmp .verify_input
 
         .verify_input:
-            sub rdx, rcx
+            add rsi, 2
+            ; TODO: this can be replaced with a single cmp by using an 8 bit register
+            ; this compares either 4 or 5 bytes
             rep cmpsb
             jne .parse_error
 
@@ -52,9 +59,9 @@ _start:
 
     mov byte [rbx], al
     inc rbx
-    cmp rdx, 0 ; compare the input length
-    jl .parse_error
-    jnz .read_byte
+    cmp rsi, rdx ; check if the input has reached the end
+    ja .parse_error
+    jne .read_byte
 
     sub rbx, [output_mapped_ptr]
     mov [output_len], rbx
