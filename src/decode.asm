@@ -27,30 +27,28 @@ _start:
     mov al, 0
     mov r9, 8
     .read_bit:
-        cmp byte [rsi], '<'
-        jne .parse_error
-        cmp byte [rsi+1], 'z'
+        cmp word [rsi], "<z"
         je .zero
-        cmp byte [rsi+1], 'o'
-        je .one
-        jmp .parse_error
-
-        .zero:
-            mov rdi, zero.text + 2
-            mov rcx, zero.len - 2
-            jmp .verify_input
+        cmp word [rsi], "<o"
+        jne .parse_error
+        ; fallthrough to .one
 
         .one:
             or al, 1
-            mov rdi, one.text + 2
-            mov rcx, one.len - 2
+            mov edi, "ne/>"
+            add rsi, one.len
+            jmp .verify_input
+
+        .zero:
+            cmp byte [rsi+2], 'e'
+            jne .parse_error
+            mov edi, "ro/>"
+            add rsi, zero.len
             ; jmp .verify_input
 
         .verify_input:
-            add rsi, 2
-            ; TODO: this can be replaced with a single cmp by using an 8 bit register
-            ; this compares either 4 or 5 bytes
-            rep cmpsb
+            ; compares the last 4 bytes
+            cmp edi, dword [rsi-4]
             jne .parse_error
 
         ror al, 1
