@@ -18,30 +18,25 @@ _start:
     mov rbx, [input_mapped_ptr]  ; src mapped addr
 
     mov rdx, 0 ; offset in [input_mapped_ptr]
+    mov r10, qword "<zero/>"
+    mov r11, qword "<one/>"
+    mov r13, 0 ; the amount of bytes to add each iteration
 .char_loop:
     ; iterate on each bit (from low to high) and print either "<one/>" or "<zero/>"
-    mov r15, 8
-    mov al, [rbx+rdx]
+    mov rcx, 8
+    mov r14b, [rbx+rdx]
     .bit_loop:
-        test al, 1
-        jz .zero
-
-        .one:
-            mov rsi, [one.text]
-            mov rcx, one.len
-            jmp .bit_loop_next
-
-        .zero:
-            mov rsi, [zero.text]
-            mov rcx, zero.len
-            ; jmp .bit_loop_next
+        test r14b, 1
+        setz r13b
+        mov rax, r11
+        cmovz rax, r10
+        mov [rdi], rax
+        add rdi, r13
+        add rdi, one.len
 
     .bit_loop_next:
-        mov [rdi], rsi
-        add rdi, rcx
-        shr al, 1
-        dec r15
-        jnz .bit_loop
+        shr r14b, 1
+        loop .bit_loop
 
     inc rdx
     cmp [input_len], rdx
