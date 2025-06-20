@@ -66,6 +66,10 @@ deinit:
     mov rsi, [output_max_len]
     call munmap
 
+    mov rdi, [input_mapped_ptr]
+    mov rsi, [input_len]
+    call munmap
+
     ; truncate the output file to have the size of the amount of data written
     mov rdi, [output_fd]
     mov rsi, [output_len]

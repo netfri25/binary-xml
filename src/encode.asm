@@ -17,10 +17,11 @@ _start:
     mov rdi, [output_mapped_ptr] ; dst mapped addr
     mov rbx, [input_mapped_ptr]  ; src mapped addr
 
+    mov rdx, 0 ; offset in [input_mapped_ptr]
 .char_loop:
     ; iterate on each bit (from low to high) and print either "<one/>" or "<zero/>"
     mov r15, 8
-    mov al, [rbx]
+    mov al, [rbx+rdx]
     .bit_loop:
         test al, 1
         jz .zero
@@ -42,8 +43,8 @@ _start:
         dec r15
         jnz .bit_loop
 
-    inc rbx
-    dec [input_len]
+    inc rdx
+    cmp [input_len], rdx
     jnz .char_loop
 
     sub rdi, [output_mapped_ptr]
