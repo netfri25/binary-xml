@@ -22,38 +22,36 @@ _start:
     mov rdx, rsi
     add rdx, [input_len]
 
-    cld
 .read_byte:
+    ; TODO: load the entire tag to a register and then apply some masks sorcery for faster compares
     mov al, 0
-    mov r9, 8
-    .read_bit:
+    rept 8 counter {
         cmp word [rsi], "<z"
-        je .zero
+        je .zero#counter
         cmp word [rsi], "<o"
         jne .parse_error
         ; fallthrough to .one
 
-        .one:
+        ; .one:
             or al, 1
             mov edi, "ne/>"
             add rsi, one.len
-            jmp .verify_input
+            jmp .verify_input#counter
 
-        .zero:
+        .zero#counter:
             cmp byte [rsi+2], 'e'
             jne .parse_error
             mov edi, "ro/>"
             add rsi, zero.len
             ; jmp .verify_input
 
-        .verify_input:
+        .verify_input#counter:
             ; compares the last 4 bytes
             cmp edi, dword [rsi-4]
             jne .parse_error
 
         ror al, 1
-        dec r9
-        jnz .read_bit
+    }
 
     mov byte [rbx], al
     inc rbx
