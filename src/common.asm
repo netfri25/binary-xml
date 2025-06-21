@@ -225,13 +225,11 @@ madvise_error_msg:
 .len = $ - .text
 
 one:
-align 8
-.text dq "<one/>"
+.text equ "<one/>"
 .len = 6
 
 zero:
-align 8
-.text dq "<zero/>"
+.text equ "<zero/>"
 .len = 7
 
 proc_stdout_path: db "/proc/self/fd/1", 0
