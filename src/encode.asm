@@ -23,9 +23,8 @@ _start:
     mov r13, 0 ; the amount of bytes to add each iteration
 .char_loop:
     ; iterate on each bit (from low to high) and print either "<one/>" or "<zero/>"
-    mov rcx, 8
     mov r14b, [rbx+rdx]
-    .bit_loop:
+    rept 8 {
         test r14b, 1
         setz r13b
         mov rax, r11
@@ -33,10 +32,8 @@ _start:
         mov [rdi], rax
         add rdi, r13
         add rdi, one.len
-
-    .bit_loop_next:
         shr r14b, 1
-        loop .bit_loop
+    }
 
     inc rdx
     cmp [input_len], rdx
