@@ -2,7 +2,7 @@ BUILD_DIR = build
 
 all: $(BUILD_DIR)/encode $(BUILD_DIR)/decode
 
-$(BUILD_DIR)/encode: src/encode.asm src/common.asm Makefile
+$(BUILD_DIR)/encode: src/encode.asm src/table.asm src/common.asm Makefile
 	@mkdir -p $(BUILD_DIR)
 	fasm $< $@
 

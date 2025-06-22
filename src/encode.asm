@@ -15,39 +15,26 @@ _start:
     call init_output
 
     mov rdi, [output_mapped_ptr] ; dst mapped addr
-    mov rbx, [input_mapped_ptr]  ; src mapped addr
+    mov rsi, [input_mapped_ptr]  ; src mapped addr
 
-    ; pointer to the end of the input
-    mov rdx, [input_mapped_ptr]
-    add rdx, [input_len]
+    mov rcx, [input_len]
 
-    ; contains the strings to write, for faster mov
-    mov r10, qword "<zero/>"
-    mov r11, qword "<one/>"
-
-    ; will be used to store an offset
-    mov r13b, 0
 .char_loop:
-    ; iterate on each bit (from low to high) and print either "<one/>" or "<zero/>"
-    mov r14b, [rbx]
-    rept 8 counter {
-        ; since the zero tag has one more character than the one tag, we want
-        ; to offset by 1 on each 0 bit, so the setz instruction assigns r13b to be the offset
-        test r14b, 1
-        setz r13b
-        mov rax, r11
-        cmovz rax, r10
-        mov [rdi+(counter-1)*one.len], rax
-        add rdi, r13
-        shr r14b, 1
+    movzx rax, byte [rsi]
+    popcnt rbx, rax
+    mov rdx, 56
+    mul rdx
+
+    rept 7 i {
+        mov r8, [table + rax + (i-1)*8]
+        mov [rdi + (i-1)*8], r8
     }
 
-    add rdi, 8*one.len
+    add rdi, 56
+    sub rdi, rbx
+    inc rsi
 
-    ; I tried using the `loop` instruction here, but it only supports rel8 jumps.
-    inc rbx
-    cmp rbx, rdx
-    jb .char_loop
+    loop .char_loop
 
     sub rdi, [output_mapped_ptr]
     mov [output_len], rdi
@@ -56,3 +43,4 @@ _start:
     jmp exit
 
 include 'common.asm'
+include 'table.asm'
