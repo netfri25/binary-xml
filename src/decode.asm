@@ -61,17 +61,14 @@ _start:
     je .end
 
     mov r8, "><zero/>"
-    mov r9, "><one/>"
-    shl r9, 8 ; it should be in the string but i dont have power to check how to do this
+    mov r9, "/><one/>"
 
 .read_byte:
     xor al, al
     rept 8 counter {
-        mov rcx, qword [rsi-1]
-        cmp rcx, r8
+        cmp qword [rsi-1], r8
         je .zero#counter
-        shl rcx, 8
-        cmp rcx, r9
+        cmp qword [rsi-2], r9
         jne .parse_error
         or al, 1 shl (counter - 1)
         dec rsi
@@ -87,7 +84,6 @@ _start:
     jne .read_byte
 
 .end:
-
     sub rbx, [output_mapped_ptr]
     mov [output_len], rbx
     call deinit
