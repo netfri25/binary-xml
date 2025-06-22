@@ -22,13 +22,11 @@ _start:
     mov rdx, rsi
     add rdx, [input_len]
 
-.read_byte:
-    ; TODO: load the entire tag to a register and then apply some masks sorcery for faster compares
     xor al, al
     rept 8 counter {
         mov rcx, qword [rsi]
         cmp cx, "<z"
-        je .zero#counter
+        je .zero2#counter
         cmp cx, "<o"
         jne .parse_error
         ; fallthrough to .one
@@ -38,9 +36,9 @@ _start:
 
             mov edi, "ne/>"
             add rsi, one.len
-            jmp .verify_input#counter
+            jmp .verify_input2#counter
 
-        .zero#counter:
+        .zero2#counter:
             shr rcx, 1 * 8
             cmp ch, 'e'
             jne .parse_error
@@ -49,7 +47,7 @@ _start:
             add rsi, zero.len
             ; jmp .verify_input
 
-        .verify_input#counter:
+        .verify_input2#counter:
             ; compares the last 4 bytes
             shr rcx, 2 * 8
             cmp edi, ecx
@@ -60,8 +58,32 @@ _start:
     inc rbx
     cmp rsi, rdx ; check if the input has reached the end
     ja .parse_error
+    je .end
+
+    mov r8, "><zero/>"
+    mov r9, "/><one/>"
+
+.read_byte:
+    xor al, al
+    rept 8 counter {
+        cmp qword [rsi-1], r8
+        je .zero#counter
+        cmp qword [rsi-2], r9
+        jne .parse_error
+        or al, 1 shl (counter - 1)
+        dec rsi
+
+        .zero#counter:
+        add rsi, zero.len
+    }
+
+    mov byte [rbx], al
+    inc rbx
+    cmp rsi, rdx ; check if the input has reached the end
+    ja .parse_error
     jne .read_byte
 
+.end:
     sub rbx, [output_mapped_ptr]
     mov [output_len], rbx
     call deinit
