@@ -22,7 +22,6 @@ _start:
     mov rdx, rsi
     add rdx, [input_len]
 
-    ; TODO: load the entire tag to a register and then apply some masks sorcery for faster compares
     xor al, al
     rept 8 counter {
         mov rcx, qword [rsi]
@@ -60,13 +59,12 @@ _start:
     cmp rsi, rdx ; check if the input has reached the end
     ja .parse_error
     je .end
-    
+
     mov r8, "><zero/>"
     mov r9, "><one/>"
     shl r9, 8 ; it should be in the string but i dont have power to check how to do this
 
 .read_byte:
-    ; TODO: load the entire tag to a register and then apply some masks sorcery for faster compares
     xor al, al
     rept 8 counter {
         mov rcx, qword [rsi-1]
@@ -102,8 +100,6 @@ _start:
     jmp error ; defined in `common.asm`
 
 segment readable
-
-
 parse_error:
 .text db "parse error", 10
 .len = $ - .text
