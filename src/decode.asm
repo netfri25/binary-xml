@@ -22,13 +22,12 @@ _start:
     mov rdx, rsi
     add rdx, [input_len]
 
-.read_byte:
     ; TODO: load the entire tag to a register and then apply some masks sorcery for faster compares
     xor al, al
     rept 8 counter {
         mov rcx, qword [rsi]
         cmp cx, "<z"
-        je .zero#counter
+        je .zero2#counter
         cmp cx, "<o"
         jne .parse_error
         ; fallthrough to .one
@@ -38,9 +37,9 @@ _start:
 
             mov edi, "ne/>"
             add rsi, one.len
-            jmp .verify_input#counter
+            jmp .verify_input2#counter
 
-        .zero#counter:
+        .zero2#counter:
             shr rcx, 1 * 8
             cmp ch, 'e'
             jne .parse_error
@@ -49,11 +48,37 @@ _start:
             add rsi, zero.len
             ; jmp .verify_input
 
-        .verify_input#counter:
+        .verify_input2#counter:
             ; compares the last 4 bytes
             shr rcx, 2 * 8
             cmp edi, ecx
             jne .parse_error
+    }
+
+    mov byte [rbx], al
+    inc rbx
+    cmp rsi, rdx ; check if the input has reached the end
+    ja .parse_error
+
+    mov r8, "><zero/>"
+    mov r9, "><one/>"
+    shl r9, 8 ; it should be in the string but i dont have power to check how to do this
+
+.read_byte:
+    ; TODO: load the entire tag to a register and then apply some masks sorcery for faster compares
+    xor al, al
+    rept 8 counter {
+        mov rcx, qword [rsi-1]
+        cmp rcx, r8
+        je .zero#counter
+        shl rcx, 8
+        cmp rcx, r9
+        jne .parse_error
+        or al, 1 shl (counter - 1)
+        dec rsi
+
+        .zero#counter:
+        add rsi, zero.len
     }
 
     mov byte [rbx], al
@@ -74,6 +99,8 @@ _start:
     jmp error ; defined in `common.asm`
 
 segment readable
+
+
 parse_error:
 .text db "parse error", 10
 .len = $ - .text
