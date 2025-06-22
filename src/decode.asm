@@ -59,7 +59,8 @@ _start:
     inc rbx
     cmp rsi, rdx ; check if the input has reached the end
     ja .parse_error
-
+    je .end
+    
     mov r8, "><zero/>"
     mov r9, "><one/>"
     shl r9, 8 ; it should be in the string but i dont have power to check how to do this
@@ -86,6 +87,8 @@ _start:
     cmp rsi, rdx ; check if the input has reached the end
     ja .parse_error
     jne .read_byte
+
+.end:
 
     sub rbx, [output_mapped_ptr]
     mov [output_len], rbx
