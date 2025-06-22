@@ -61,6 +61,16 @@ init_output:
     ret
 
 deinit:
+    mov rdi, [output_mapped_ptr]
+    mov rsi, [output_max_len]
+    mov rdx, 21 ; MADV_PAGEOUT
+    call madvise
+
+    mov rdi, [input_mapped_ptr]
+    mov rsi, [input_len]
+    mov rdx, 21 ; MADV_PAGEOUT
+    call madvise
+
     ; munmap the mapped region, so that all of the pages are flushed
     mov rdi, [output_mapped_ptr]
     mov rsi, [output_max_len]
