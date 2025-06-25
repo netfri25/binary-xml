@@ -9,7 +9,7 @@ Hours were spent on this project to make sure that it as highly optimized as pos
 
 ### Performance
 My machine contains the following:
- - Void Linux (kernel version 6.12.33_1)
+ - Void Linux x86-64 (kernel version 6.12.33_1)
  - i5-1135G7 @ 4.20 GHz (8 cores, 11th gen, 8 MB cache)
  - 16GB DDR4 RAM
  - 512GB NVME M.2 2280 PCIe (Read 3100 MB/s, Write 2100 MB/s, Read IOPS 150K, Write IOPS 100K)
@@ -30,9 +30,12 @@ My machine contains the following:
 ## Getting Started
 
 ### Dependencies
-`x86-64 linux ???` machine with the following programs:
+ - `x86-64` architecture
+ - minimal linux version of 5.4
  - fasm
  - make
+
+###### no need for libc :)
 
 ### Example
 after [building](#build) the programs, we can run the following commands to demonstrate how this format works:
@@ -41,7 +44,7 @@ echo -n "Hello World!" > hello.txt
 build/encode < hello.txt > hello.xml
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > because of mmap-ing files, reading from stdin, writing from stdout, and piping - are not possible at all, and will give an error. using this project's executables is only possible by redirecting, which creates a symlink from stdin/stdout to the redirected file, as shown in this example.
 
 firstly, we create a `hello.txt` file with the content `Hello World!`, and by using echo's `-n` flag we ensure that it won't insert a `\n` at the end of the file.
