@@ -180,8 +180,8 @@ ftruncate:
     jl .error
     ret
 .error:
-    mov rsi, open_error_msg.text
-    mov rdx, open_error_msg.len
+    mov rsi, ftruncate_error_msg.text
+    mov rdx, ftruncate_error_msg.len
     jmp error
 
 ; rdi: addr
