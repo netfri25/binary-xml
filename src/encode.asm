@@ -8,8 +8,7 @@ _start:
 
     ; calculate the maximum possible length for the output
     mov rax, [input_len]  ; len
-    mov rcx, 8 * zero.len ; max(zero.len, one.len) == zero.len + 2 bytes (alignment for <one/>)
-    mul rcx
+    shl rax, 6            ; rax *= 64
     mov [output_max_len], rax
 
     call init_output
@@ -22,15 +21,18 @@ _start:
 .char_loop:
     movzx rax, byte [rsi]
     popcnt rbx, rax
-    mov rdx, 56
-    mul rdx
 
-    rept 7 i {
-        mov r8, [table + rax + (i-1)*8]
-        mov [rdi + (i-1)*8], r8
-    }
+    ; index in the table. since each element in the table is 64 bytes
+    ; the index should be multiplied by 64, which is 2**6
+    shl rax, 6
 
-    add rdi, 56
+    ; copy from the table to the destination
+    vmovdqa64 zmm0, [table + rax]
+    vmovdqu64 [rdi], zmm0
+
+    ; the difference between the length of `<zero/>` and the length of `<one/>` is exactly 1 byte,
+    ; so the difference when writing a full byte as "tag bits" is 8 * zero.len - popcnt
+    add rdi, 8 * zero.len
     sub rdi, rbx
     inc rsi
 
