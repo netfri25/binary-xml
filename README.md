@@ -1,5 +1,8 @@
 # Binary XML encode/decode
 
+> [!IMPORTANT]
+> I haven't yet updated information about performance in this branch
+
 <img src='assets/showcase.png'>
 
 ## About
