@@ -1,5 +1,7 @@
 # Binary XML encode/decode
 
+check out the [avx512 branch](https://github.com/netfri25/binary-xml/tree/avx512) if your [cpu supports avx512]
+
 <img src='assets/showcase.png'>
 
 ## About
