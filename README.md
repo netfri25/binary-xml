@@ -38,7 +38,7 @@ My machine contains the following:
  - minimal linux version of 5.4
  - fasm
  - make
- - cpu with [avx512](https://en.wikipedia.org/wiki/AVX-512#CPUs_with_AVX-512)
+ - cpu with [avx512](https://en.wikipedia.org/wiki/AVX-512#CPUs_with_AVX-512) (specifically: AVX512BW, AVX512F, AVX512VL, AVX512_VBMI)
 
 ###### no need for libc :)
 
