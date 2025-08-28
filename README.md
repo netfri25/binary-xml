@@ -1,8 +1,5 @@
 # Binary XML encode/decode
 
-> [!IMPORTANT]
-> I haven't yet updated information about performance in this branch
-
 <img src='assets/showcase.png'>
 
 ## About
@@ -19,17 +16,20 @@ My machine contains the following:
 
 
 ##### encoding
-430ms for reading 7.1 MB and writing 365 MB.
- - read:  `16.51 MB/s`
- - write: `848.83 MB/s`
+##### With AVX512
+636.5ms for reading 14 MB and writing 730 MB.
+ - read:  `21.995 MB/s`
+ - write: `1146.897 MB/s`
+
+##### Without AVX512
+755.8ms for reading 14 MB and writing 730 MB.
+ - read:  `18.523 MB/s`
+ - write: `965.864 MB/s`
 
 ##### decoding
-490ms for reading 365 MB and writing 7.1 MB
- - read:  `744.9 MB/s`
- - write: `14.45 MB/s`
-
-> [!NOTE]
-> decoding is naturally slower, since it needs to check for the correctness of the input
+545ms for reading 730 MB and writing 14 MB
+ - read:  `1339.450 MB/s`
+ - write: `25.688 MB/s`
 
 ## Getting Started
 
