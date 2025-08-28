@@ -12,10 +12,11 @@ Hours were spent on this project to make sure that it as highly optimized as pos
 
 ### Performance
 My machine contains the following:
- - Void Linux x86-64 (kernel version 6.12.33_1)
- - i5-1135G7 @ 4.20 GHz (8 cores, 11th gen, 8 MB cache)
- - 16GB DDR4 RAM
- - 512GB NVME M.2 2280 PCIe (Read 3100 MB/s, Write 2100 MB/s, Read IOPS 150K, Write IOPS 100K)
+ - Void Linux x86-64 (kernel version 6.12.41_1)
+ - AMD Ryzen AI 9 365 @ 5.04 GHz (10 cores, 20 threads, L1: 800 KiB, L2: 10 MiB, L3: 24 MiB)
+ - 24 GiB DDR4 RAM @ 3205 MHz
+ - 1TB (953 GiB) NVME M.2 PCIe (Read 4500 MB/s, Write 3600 MB/s, Read IOPS 600K, Write IOPS 650K)
+
 
 ##### encoding
 430ms for reading 7.1 MB and writing 365 MB.
@@ -37,6 +38,7 @@ My machine contains the following:
  - minimal linux version of 5.4
  - fasm
  - make
+ - cpu with [avx512](https://en.wikipedia.org/wiki/AVX-512#CPUs_with_AVX-512)
 
 ###### no need for libc :)
 
