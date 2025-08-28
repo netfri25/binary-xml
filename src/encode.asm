@@ -57,13 +57,8 @@ _start:
         ; copy from the table to the destination
         vmovdqa64 zmm0, [table + rax]
         vmovdqu64 [rdi], zmm0
-
-        ; the difference between the length of `<zero/>` and the length
-        ; of `<one/>` is exactly 1 byte, so the difference when writing
-        ; a full byte as "tag bits" is 8 * zero.len - popcnt
-        add rdi, 8 * zero.len
-        movzx rbx, byte [popcnt_buffer + rcx]
-        sub rdi, rbx
+        ; each length is 64 bit integer, hence indexing is prev mult by 8
+        add rdi, qword [lengths + eax]
 
         inc rcx
         cmp rcx, r9
