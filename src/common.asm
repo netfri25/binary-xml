@@ -10,7 +10,9 @@ init_input:
     ; seek to the start of redirected stdin
     mov rdx, 0  ; SEEK_SET
     call seek_stdin
+    ret
 
+mmap_input:
     ; map the redirected stdin to memory
     ; mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd=0, offset=0)
     mov rsi, [input_len]  ; length
@@ -36,7 +38,7 @@ init_output:
     ; this "hack" opens `/proc/self/fd/1` using the O_RDWR flag and then maps it to memory using mmap.
     ; open(proc_stdout_path, O_RDWR)
     mov rdi, proc_stdout_path
-    mov rsi, 0x0202 ; O_RDWR | O_CREAT
+    mov rsi, 0x40202 ; O_RDWR | O_CREAT | O_DIRECT
     call open
     mov [output_fd], rax ; save the fd
 
@@ -44,7 +46,9 @@ init_output:
     mov rdi, [output_fd]
     mov rsi, [output_max_len]
     call ftruncate
+    ret
 
+mmap_output:
     ; mmap output file to memory
     mov rsi, [output_max_len]
     mov r8,  [output_fd]
@@ -60,14 +64,20 @@ init_output:
     call madvise
     ret
 
-deinit:
-    mov rdi, [output_mapped_ptr]
-    mov rsi, [output_max_len]
+deinit_input:
+    mov rdi, [input_mapped_ptr]
+    mov rsi, [input_len]
     mov rdx, 21 ; MADV_PAGEOUT
     call madvise
 
     mov rdi, [input_mapped_ptr]
     mov rsi, [input_len]
+    call munmap
+    ret
+
+unmap_output:
+    mov rdi, [output_mapped_ptr]
+    mov rsi, [output_max_len]
     mov rdx, 21 ; MADV_PAGEOUT
     call madvise
 
@@ -75,11 +85,9 @@ deinit:
     mov rdi, [output_mapped_ptr]
     mov rsi, [output_max_len]
     call munmap
+    ret
 
-    mov rdi, [input_mapped_ptr]
-    mov rsi, [input_len]
-    call munmap
-
+truncate_output:
     ; truncate the output file to have the size of the amount of data written
     mov rdi, [output_fd]
     mov rsi, [output_len]

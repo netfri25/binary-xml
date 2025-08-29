@@ -5,6 +5,7 @@ entry _start
 segment readable executable
 _start:
     call init_input
+    call mmap_input
 
     ; calculate the maximum possible length for the output
     mov rax, [input_len]  ; len
@@ -68,8 +69,15 @@ _start:
 
     sub rdi, [output_mapped_ptr]
     mov [output_len], rdi
-    call deinit
+    call deinit_input
+    call truncate_output
+    call close_output
     jmp exit
 
+close_output:
+    mov rax, 3
+    mov rdi, [output_fd]
+    syscall
+    ret
 include 'common.asm'
 include 'table.asm'
