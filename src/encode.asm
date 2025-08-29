@@ -29,11 +29,15 @@ _start:
 
     ; can't use constant in cmov lmao
     mov r8, 64
+    mov r15, 56
 
 .64bytes_loop:
     ; read 64 bytes at once to `byte_buffer`
     ; this is fine to over-read.
     vmovdqa64 zmm1, [r13]
+    vpbroadcastb zmm5, r15b  ; zmm5 = [ 56 56 .. 56 ]
+    vpopcntb zmm4, zmm1      ; zmm4 = [ popcnt(zmm1[0]) popcnt(zmm1[1]) .. popcnt(zmm1[63]) ]
+    vpsubb zmm4, zmm5, zmm4  ; zmm4 = [ len(zmm1[0]) len(zmm1[1]) .. len(zmm1[63]) ]
 
     ; amount of bytes to process: r9 = min(64, src_end - src_ptr)
     ; either 64 at once or the leftover bytes if there's less than 64 left
@@ -49,6 +53,7 @@ _start:
     .byte_loop:
         vpbroadcastb zmm2, cl    ; zmm2 = [ cl cl .. cl ]
         vpermb zmm0, zmm2, zmm1  ; zmm0 = [ zmm1[cl] zmm1[cl] .. zmm1[cl] ]
+        vpermb zmm6, zmm2, zmm4  ; zmm4 = [ len(zmm1[cl]) len(zmm1[cl]) .. len(zmm1[cl]) ]
         vmovd eax, xmm0
         and rax, 0xFF
 
@@ -60,8 +65,9 @@ _start:
         vmovdqa64 zmm3, [table + eax*8]
         vmovdqu64 [r10], zmm3
 
-        ; each length is 64 bit integer, hence indexing is prev mult by 8
-        add r10, qword [lengths + eax]
+        vmovd eax, xmm6
+        and rax, 0xFF
+        add r10, rax
 
         inc rcx
         cmp rcx, r9

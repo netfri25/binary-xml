@@ -17,9 +17,9 @@ My machine contains the following:
 
 ##### encoding
 ##### With AVX512 (and non-mmap output)
-409.7ms for reading 14 MB and writing 730 MB.
- - read:  `34.171 MB/s`
- - write: `1781.792 MB/s`
+406.2ms for reading 14 MB and writing 730 MB.
+ - read:  `34.466 MB/s`
+ - write: `1797.144 MB/s`
 
 ##### Without AVX512
 755.8ms for reading 14 MB and writing 730 MB.
