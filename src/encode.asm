@@ -2,6 +2,11 @@
 format ELF64 executable
 entry _start
 
+BUFFER_CAP equ (1024 * 1024 * 2)
+
+segment readable writeable
+buffer: rb BUFFER_CAP
+
 segment readable executable
 _start:
     call init_input
@@ -14,13 +19,13 @@ _start:
 
     call init_output
 
-    mov rdi, [output_mapped_ptr] ; dst mapped addr
-    mov rsi, [input_mapped_ptr]  ; src mapped addr
+    mov r10, buffer ; dst mapped addr
+    mov r13, [input_mapped_ptr]  ; src mapped addr
 
     mov rcx, [input_len]
 
     ; pointer to the end of src
-    lea rdx, [rsi + rcx]
+    lea r12, [r13 + rcx]
 
     ; can't use constant in cmov lmao
     mov r8, 64
@@ -28,12 +33,12 @@ _start:
 .64bytes_loop:
     ; read 64 bytes at once to `byte_buffer`
     ; this is fine to over-read.
-    vmovdqa64 zmm1, [rsi]
+    vmovdqa64 zmm1, [r13]
 
     ; amount of bytes to process: r9 = min(64, src_end - src_ptr)
     ; either 64 at once or the leftover bytes if there's less than 64 left
-    mov r9, rdx
-    sub r9, rsi
+    mov r9, r12
+    sub r9, r13
     cmp r9, 64
     cmova r9, r8
 
@@ -53,22 +58,26 @@ _start:
 
         ; copy from the table to the destination
         vmovdqa64 zmm3, [table + eax*8]
-        vmovdqu64 [rdi], zmm3
+        vmovdqu64 [r10], zmm3
 
         ; each length is 64 bit integer, hence indexing is prev mult by 8
-        add rdi, qword [lengths + eax]
+        add r10, qword [lengths + eax]
 
         inc rcx
         cmp rcx, r9
         jne .byte_loop
 
-    add rsi, 64
-    cmp rdx, rsi
+    cmp r10, buffer + BUFFER_CAP - (56 * 64)
+    jb .dont_flush
+    call flush_buffer
+    .dont_flush:
+
+    add r13, 64
+    cmp r12, r13
     ja .64bytes_loop
 
+    call flush_buffer
 
-    sub rdi, [output_mapped_ptr]
-    mov [output_len], rdi
     call deinit_input
     call truncate_output
     call close_output
@@ -79,5 +88,16 @@ close_output:
     mov rdi, [output_fd]
     syscall
     ret
+
+flush_buffer:
+    mov rax, 1
+    mov rdi, [output_fd]
+    mov rsi, buffer
+    lea rdx, [r10 - buffer]
+    add [output_len], rdx
+    syscall
+    mov r10, buffer ; reset the buffer to the start
+    ret
+
 include 'common.asm'
 include 'table.asm'
