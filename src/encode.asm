@@ -29,36 +29,36 @@ _start:
     lea r12, [r13 + rcx]
 
     ; TODO: instead of handling one byte try to handle multiple at once
-.byte_loop:
-    movzx eax, byte [r13]
+    .byte_loop:
+        movzx eax, byte [r13]
 
-    ; index in the byte table. since each element in the table is
-    ; 64 bytes, the index should be multiplied by 64, which is 2**6
-    shl ax, 6
+        ; index in the byte table. since each element in the table is
+        ; 64 bytes, the index should be multiplied by 64, which is 2**6
+        shl ax, 6
 
-    ; copy from the table to the destination
-    vmovdqa64 zmm3, [table + eax]
-    vmovdqu64 [r10], zmm3
+        ; copy from the table to the destination
+        vmovdqa64 zmm3, [table + eax]
+        vmovdqu64 [r10], zmm3
 
-    ; I'm not sure if this is the most efficient approach for the length
-    ; but right now this isn't the bottleneck.
-    popcnt rax, rax
-    add r10, 56
-    sub r10, rax
+        ; I'm not sure if this is the most efficient approach for the length
+        ; but right now this isn't the bottleneck.
+        popcnt rax, rax
+        add r10, 56
+        sub r10, rax
 
-    ; if the next chunk can fill the buffer, flush now.
-    cmp r10, buffer + BUFFER_CAP - 56
-    jb .dont_flush
+        ; if the next chunk can fill the buffer, flush now.
+        cmp r10, buffer + BUFFER_CAP - 56
+        jb .dont_flush
 
-    ; can be inlined but barely impacts performance.
-    call flush_buffer
-    .dont_flush:
+        ; can be inlined but barely impacts performance.
+        call flush_buffer
+        .dont_flush:
 
-    ; continue looping if the end of src ptr (r12) is
-    ; still bigger than the current src ptr (r13)
-    inc r13
-    cmp r12, r13
-    ja .byte_loop
+        ; continue looping if the end of src ptr (r12) is
+        ; still bigger than the current src ptr (r13)
+        inc r13
+        cmp r12, r13
+        ja .byte_loop
 
     ; one last flush. if there's nothing to flush then
     ; it's a small wasted syscall, but barely impacts performance.
