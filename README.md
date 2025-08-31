@@ -16,9 +16,9 @@ My machine contains the following:
 
 
 ##### encoding
-280.4ms for reading 14 MB and writing 730 MB.
- - read:  `49.929 MB/s`
- - write: `2639.087 MB/s`
+139.4ms for reading 14 MB and writing 730 MB.
+ - read:  `100.430 MB/s`
+ - write: `5236.729 MB/s`
 
 ##### decoding
 545ms for reading 730 MB and writing 14 MB
