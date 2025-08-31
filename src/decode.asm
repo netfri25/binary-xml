@@ -5,6 +5,7 @@ entry _start
 segment readable executable
 _start:
     call init_input
+    call mmap_input
 
     ; rdx:rax / rcx
     mov rdx, 0
@@ -14,6 +15,7 @@ _start:
     mov [output_max_len], rax
 
     call init_output
+    call mmap_output
 
     mov rbx, [output_mapped_ptr] ; dst mapped addr
     mov rsi, [input_mapped_ptr]  ; src mapped addr
@@ -86,7 +88,9 @@ _start:
 .end:
     sub rbx, [output_mapped_ptr]
     mov [output_len], rbx
-    call deinit
+    call deinit_input
+    call unmap_output
+    call truncate_output
 
     jmp exit
 

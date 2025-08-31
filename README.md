@@ -11,23 +11,27 @@ Hours were spent on this project to make sure that it as highly optimized as pos
 
 ### Performance
 My machine contains the following:
- - Void Linux x86-64 (kernel version 6.12.33_1)
- - i5-1135G7 @ 4.20 GHz (8 cores, 11th gen, 8 MB cache)
- - 16GB DDR4 RAM
- - 512GB NVME M.2 2280 PCIe (Read 3100 MB/s, Write 2100 MB/s, Read IOPS 150K, Write IOPS 100K)
+ - Void Linux x86-64 (kernel version 6.12.41_1)
+ - AMD Ryzen AI 9 365 @ 5.04 GHz (10 cores, 20 threads, L1: 800 KiB, L2: 10 MiB, L3: 24 MiB)
+ - 24 GiB DDR4 RAM @ 3205 MHz
+ - 1TB (953 GiB) NVME M.2 PCIe (Read 4500 MB/s, Write 3600 MB/s, Read IOPS 600K, Write IOPS 650K)
+
 
 ##### encoding
-430ms for reading 7.1 MB and writing 365 MB.
- - read:  `16.51 MB/s`
- - write: `848.83 MB/s`
+##### With AVX512 (and non-mmap output)
+280.4ms for reading 14 MB and writing 730 MB.
+ - read:  `49.929 MB/s`
+ - write: `2639.087 MB/s`
+
+##### Without AVX512
+755.8ms for reading 14 MB and writing 730 MB.
+ - read:  `18.523 MB/s`
+ - write: `965.864 MB/s`
 
 ##### decoding
-490ms for reading 365 MB and writing 7.1 MB
- - read:  `744.9 MB/s`
- - write: `14.45 MB/s`
-
-> [!NOTE]
-> decoding is naturally slower, since it needs to check for the correctness of the input
+545ms for reading 730 MB and writing 14 MB
+ - read:  `1339.450 MB/s`
+ - write: `25.688 MB/s`
 
 ## Getting Started
 
@@ -36,6 +40,7 @@ My machine contains the following:
  - minimal linux version of 5.4
  - fasm
  - make
+ - cpu with [avx512](https://en.wikipedia.org/wiki/AVX-512#CPUs_with_AVX-512) (specifically: AVX512BW, AVX512F, AVX512VL, AVX512_VBMI)
 
 ###### no need for libc :)
 

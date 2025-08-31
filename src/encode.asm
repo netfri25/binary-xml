@@ -2,45 +2,86 @@
 format ELF64 executable
 entry _start
 
+INPUT_BUFFER_CAP equ (128 * 1024)
+OUTPUT_BUFFER_CAP equ (INPUT_BUFFER_CAP * 56 + 8)
+
+SYS_read equ 0
+SYS_write equ 1
+
+STDIN_FD equ 0
+STDOUT_FD equ 1
+
+segment readable writeable
+align 64
+input_buffer: rb INPUT_BUFFER_CAP
+align 64
+output_buffer: rb OUTPUT_BUFFER_CAP
+
 segment readable executable
 _start:
-    call init_input
+    .read_loop:
+        ; read to the input buffer
+        mov rax, SYS_read
+        mov rdi, STDIN_FD
+        mov rsi, input_buffer
+        mov rdx, INPUT_BUFFER_CAP
+        syscall
 
-    ; calculate the maximum possible length for the output
-    mov rax, [input_len]  ; len
-    mov rcx, 8 * zero.len ; max(zero.len, one.len) == zero.len + 2 bytes (alignment for <one/>)
-    mul rcx
-    mov [output_max_len], rax
+        ; exit if no more bytes left, or print error when error occures
+        cmp rax, 0
+        je exit
+        jl .error
 
-    call init_output
+        ; initialize pointers to the buffers
+        mov rsi, input_buffer
+        mov rdi, output_buffer
 
-    mov rdi, [output_mapped_ptr] ; dst mapped addr
-    mov rsi, [input_mapped_ptr]  ; src mapped addr
+        ; the amount of bytes read is the number of iterations
+        mov rcx, rax
 
-    mov rcx, [input_len]
+        .byte_loop:
+            movzx eax, byte [rsi]
 
-.char_loop:
-    movzx rax, byte [rsi]
-    popcnt rbx, rax
-    mov rdx, 56
-    mul rdx
+            ; each item in the table is 64 bytes in size (56 maximum string length + 8 bytes for alignment).
+            ; which is 2**6
+            shl eax, 6
 
-    rept 7 i {
-        mov r8, [table + rax + (i-1)*8]
-        mov [rdi + (i-1)*8], r8
-    }
+            ; copy from the table to the destination
+            vmovdqa64 zmm0, [table + eax]
+            vmovdqu64 [rdi], zmm0
 
-    add rdi, 56
-    sub rdi, rbx
-    inc rsi
+            ; advance by the actual string length: 56 - popcnt
+            popcnt rax, rax
+            add rdi, 56
+            sub rdi, rax
 
-    loop .char_loop
+            ; next byte
+            inc rsi
+            loop .byte_loop
 
-    sub rdi, [output_mapped_ptr]
-    mov [output_len], rdi
-    call deinit
 
-    jmp exit
+        ; flush the output buffer
+        lea rdx, [rdi - output_buffer] ; bytes written count
+        mov rax, SYS_write
+        mov rdi, STDOUT_FD
+        mov rsi, output_buffer
+        syscall
+
+        jmp .read_loop
+
+; won't fallthrough because of the `read` syscall
+
+.error:
+    mov rsi, read_error_msg.text
+    mov rdx, read_error_msg.len
+    jmp error
+
+
+segment readable
+read_error_msg:
+.text db "can't read file", 10
+.len = $ - .text
+
 
 include 'common.asm'
 include 'table.asm'
