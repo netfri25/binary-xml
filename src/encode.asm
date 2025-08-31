@@ -2,9 +2,10 @@
 format ELF64 executable
 entry _start
 
-BUFFER_CAP equ (1024 * 1024 * 2)
+BUFFER_CAP equ (1024 * 1024)
 
 segment readable writeable
+align 64
 buffer: rb BUFFER_CAP
 
 segment readable executable
@@ -27,61 +28,40 @@ _start:
     ; pointer to the end of src
     lea r12, [r13 + rcx]
 
-    ; can't use constant in cmov lmao
-    mov r8, 64
-    mov r15, 56
-
-.64bytes_loop:
-    ; read 64 bytes at once to `byte_buffer`
-    ; this is fine to over-read.
-    vmovdqa64 zmm1, [r13]
-    vpbroadcastb zmm5, r15b  ; zmm5 = [ 56 56 .. 56 ]
-    vpopcntb zmm4, zmm1      ; zmm4 = [ popcnt(zmm1[0]) popcnt(zmm1[1]) .. popcnt(zmm1[63]) ]
-    vpsubb zmm4, zmm5, zmm4  ; zmm4 = [ len(zmm1[0]) len(zmm1[1]) .. len(zmm1[63]) ]
-
-    ; amount of bytes to process: r9 = min(64, src_end - src_ptr)
-    ; either 64 at once or the leftover bytes if there's less than 64 left
-    mov r9, r12
-    sub r9, r13
-    cmp r9, 64
-    cmova r9, r8
-
-    ; index inside zmm1
-    xor rcx, rcx
-
     ; TODO: instead of handling one byte try to handle multiple at once
-    .byte_loop:
-        vpbroadcastb zmm2, cl    ; zmm2 = [ cl cl .. cl ]
-        vpermb zmm0, zmm2, zmm1  ; zmm0 = [ zmm1[cl] zmm1[cl] .. zmm1[cl] ]
-        vpermb zmm6, zmm2, zmm4  ; zmm4 = [ len(zmm1[cl]) len(zmm1[cl]) .. len(zmm1[cl]) ]
-        vmovd eax, xmm0
-        and rax, 0xFF
+.byte_loop:
+    movzx eax, byte [r13]
 
-        ; index in the byte table. since each element in the table is
-        ; 64 bytes, the index should be multiplied by 64, which is 8 * 2**3
-        shl eax, 3
+    ; index in the byte table. since each element in the table is
+    ; 64 bytes, the index should be multiplied by 64, which is 2**6
+    shl ax, 6
 
-        ; copy from the table to the destination
-        vmovdqa64 zmm3, [table + eax*8]
-        vmovdqu64 [r10], zmm3
+    ; copy from the table to the destination
+    vmovdqa64 zmm3, [table + eax]
+    vmovdqu64 [r10], zmm3
 
-        vmovd eax, xmm6
-        and rax, 0xFF
-        add r10, rax
+    ; I'm not sure if this is the most efficient approach for the length
+    ; but right now this isn't the bottleneck.
+    popcnt rax, rax
+    add r10, 56
+    sub r10, rax
 
-        inc rcx
-        cmp rcx, r9
-        jne .byte_loop
-
-    cmp r10, buffer + BUFFER_CAP - (56 * 64)
+    ; if the next chunk can fill the buffer, flush now.
+    cmp r10, buffer + BUFFER_CAP - 56
     jb .dont_flush
+
+    ; can be inlined but barely impacts performance.
     call flush_buffer
     .dont_flush:
 
-    add r13, 64
+    ; continue looping if the end of src ptr (r12) is
+    ; still bigger than the current src ptr (r13)
+    inc r13
     cmp r12, r13
-    ja .64bytes_loop
+    ja .byte_loop
 
+    ; one last flush. if there's nothing to flush then
+    ; it's a small wasted syscall, but barely impacts performance.
     call flush_buffer
 
     call deinit_input
