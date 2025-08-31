@@ -44,7 +44,7 @@ build/encode < hello.txt > hello.xml
 ```
 
 > [!IMPORTANT]
-> because of mmap-ing files, reading from stdin, writing from stdout, and piping - are not possible at all, and will give an error. using this project's executables is only possible by redirecting, which creates a symlink from stdin/stdout to the redirected file, as shown in this example.
+> because of mmap-ing files, reading from stdin, writing from stdout, and piping - are not possible at all on the decoder, and will give an error. using the decoder is only possible by redirecting, which creates a symlink from stdin/stdout to the redirected file, as shown in this example.
 
 firstly, we create a `hello.txt` file with the content `Hello World!`, and by using echo's `-n` flag we ensure that it won't insert a `\n` at the end of the file.
 then, we encode the content. we read from `hello.txt` and write to `hello.xml` the encoded XML.
