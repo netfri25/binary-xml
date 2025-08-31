@@ -2,10 +2,7 @@
 format ELF64 executable
 entry _start
 
-BUFFER_CAP equ (1024 * 1024 * 2)
-
-segment readable writeable
-buffer: rb BUFFER_CAP
+; TODO: try to increase the buffer for writev
 
 segment readable executable
 _start:
@@ -19,90 +16,114 @@ _start:
 
     call init_output
 
-    mov r10, buffer ; dst mapped addr
     mov r13, [input_mapped_ptr]  ; src mapped addr
-
     mov rcx, [input_len]
 
-    ; pointer to the end of src
-    lea r12, [r13 + rcx]
+    ; pointer to the last 64 bytes of src
+    lea r12, [r13 + rcx - 64]
 
-    ; can't use constant in cmov lmao
-    mov r8, 64
-    mov r15, 56
+    vzeroall
 
-.64bytes_loop:
-    ; read 64 bytes at once to `byte_buffer`
-    ; this is fine to over-read.
-    vmovdqa64 zmm1, [r13]
-    vpbroadcastb zmm5, r15b  ; zmm5 = [ 56 56 .. 56 ]
-    vpopcntb zmm4, zmm1      ; zmm4 = [ popcnt(zmm1[0]) popcnt(zmm1[1]) .. popcnt(zmm1[63]) ]
-    vpsubb zmm4, zmm5, zmm4  ; zmm4 = [ len(zmm1[0]) len(zmm1[1]) .. len(zmm1[63]) ]
+    mov cl, 56
+    vpbroadcastb zmm6, cl
 
-    ; amount of bytes to process: r9 = min(64, src_end - src_ptr)
-    ; either 64 at once or the leftover bytes if there's less than 64 left
-    mov r9, r12
-    sub r9, r13
-    cmp r9, 64
-    cmova r9, r8
+    mov cl, 1
+    vpbroadcastb zmm7, cl
 
-    ; index inside zmm1
-    xor rcx, rcx
+    .64bytes_loop:
+        ; read 64 bytes at once to zmm0
+        ; this is fine to over-read.
+        vmovdqa64 zmm0, [r13]
 
-    ; TODO: instead of handling one byte try to handle multiple at once
-    .byte_loop:
-        vpbroadcastb zmm2, cl    ; zmm2 = [ cl cl .. cl ]
-        vpermb zmm0, zmm2, zmm1  ; zmm0 = [ zmm1[cl] zmm1[cl] .. zmm1[cl] ]
-        vpermb zmm6, zmm2, zmm4  ; zmm4 = [ len(zmm1[cl]) len(zmm1[cl]) .. len(zmm1[cl]) ]
-        vmovd eax, xmm0
-        and rax, 0xFF
+        ; length = 56 - popcnt
+        vpopcntb zmm1, zmm0
+        vpsubb zmm1, zmm6, zmm1
 
-        ; index in the byte table. since each element in the table is
-        ; 64 bytes, the index should be multiplied by 64, which is 8 * 2**3
-        shl eax, 3
+        vmovdqa64 zmm2, [indices]
 
-        ; copy from the table to the destination
-        vmovdqa64 zmm3, [table + eax*8]
-        vmovdqu64 [r10], zmm3
+        mov r11, 0
+        .process:
+            ; select bytes using the indices given in zmm2
+            ; only write to the low bytes, so they can be treated as qword
+            ; zmm3 = [ k1 ? zmm0[zmm2] : 0 ]
+            ; NOTE: don't forget to increment each of the bytes in zmm2
+            ; zmm3 = [ byte0, byte8, byte16, .. byte56 ]
+            mov rcx, 0x0101010101010101
+            kmovq k1, rcx
+            vpermb zmm3{k1}{z}, zmm2, zmm0
 
-        vmovd eax, xmm6
-        and rax, 0xFF
-        add r10, rax
+            ; zmm3 = [ table + byte0*64, table + byte8*64, .. table + byte56*64 ]
+            ; each element in the table is 64 in size
+            vpsllq zmm3, zmm3, 6  ; x << 6 == x * 64
+            mov rcx, table
+            vpbroadcastq zmm4, rcx
+            vpaddq zmm3, zmm3, zmm4
 
-        inc rcx
-        cmp rcx, r9
-        jne .byte_loop
+            ; load the offsets inside of `iovec_buffer`
+            vmovdqa64 zmm4, [offsets]
 
-    cmp r10, buffer + BUFFER_CAP - (56 * 64)
-    jb .dont_flush
-    call flush_buffer
-    .dont_flush:
+            ; iovec_ptr = iovec_buffer + sizeof(iovec) * i
+            mov r10, r11
+            shl r10, 4 ; x << 4 == x * 16
+            add r10, iovec_buffer
 
-    add r13, 64
-    cmp r12, r13
-    ja .64bytes_loop
+            ; scatter the pointers to the iovec_buffer
+            ; *8 since it's calculated in transposed chunks of 8 bytes in a 8*8 grid
+            mov rcx, 0xFFFFFFFFFFFFFFFF
+            kmovq k2, rcx
+            vpscatterqq [r10 + zmm4*8]{k2}, zmm3
 
-    call flush_buffer
+            ; scatter the lengths in the iovec_buffer
+            mov rcx, 0x0101010101010101
+            kmovq k1, rcx
+            vpermb zmm3{k1}{z}, zmm2, zmm1
+
+            mov rcx, 0xFFFFFFFFFFFFFFFF
+            kmovq k2, rcx
+            vpscatterqq [r10 + zmm4*8 + 8]{k2}, zmm3
+
+            ; increment the indices for the next round
+            vpaddq zmm2, zmm2, zmm7
+
+            inc r11
+            cmp r11, 8
+            jne .process
+
+
+        mov rax, 0x14
+        mov rdi, [output_fd]
+        mov rsi, iovec_buffer
+
+        cmp r13, r12
+        jae .last_bytes
+
+        mov rdx, 64
+        syscall
+
+        ; the result of the `writev` syscall is
+        ; the amount of bytes written to the file
+        add [output_len], rax
+
+        add r13, 64
+        jmp .64bytes_loop
+
+    .last_bytes:
+        lea rdx, [r12 + 64]
+        sub rdx, r13
+        syscall
+        add [output_len], rax
 
     call deinit_input
     call truncate_output
     call close_output
+
     jmp exit
+
 
 close_output:
     mov rax, 3
     mov rdi, [output_fd]
     syscall
-    ret
-
-flush_buffer:
-    mov rax, 1
-    mov rdi, [output_fd]
-    mov rsi, buffer
-    lea rdx, [r10 - buffer]
-    add [output_len], rdx
-    syscall
-    mov r10, buffer ; reset the buffer to the start
     ret
 
 include 'common.asm'

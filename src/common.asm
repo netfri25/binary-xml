@@ -212,7 +212,7 @@ error_code dq 0
 segment readable writeable
 input_len rq 1
 input_mapped_ptr rq 1
-output_len rq 1
+output_len dq 0
 output_max_len rq 1
 output_fd rq 1
 output_mapped_ptr rq 1

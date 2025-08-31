@@ -1,5 +1,29 @@
-segment readable
+segment readable writeable
+; each chunk of 64 bytes will contain 64 "write calls".
+; each "write call" is a pointer to the data and a length.
+; size of a write call: 16 bytes
+align 64
+iovec_buffer:
+rq 16 * 64
 
+; offsets of `struct iovec` in the iovec buffer
+align 64
+offsets:
+dq  0x00, 0x10, 0x20, 0x30,  0x40, 0x50, 0x60, 0x70
+
+; indices to pick the bytes from the 64 bytes source register
+align 64
+indices:
+dq 0x00
+dq 0x08
+dq 0x10
+dq 0x18
+dq 0x20
+dq 0x28
+dq 0x30
+dq 0x38
+
+segment readable
 align 64
 table:
 db "<zero/><zero/><zero/><zero/><zero/><zero/><zero/><zero/>", 8 dup 0
