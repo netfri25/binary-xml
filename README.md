@@ -1,7 +1,5 @@
 # Binary XML encode/decode
 
-check out the [avx512 branch](https://github.com/netfri25/binary-xml/tree/avx512) if your [cpu supports avx512]
-
 <img src='assets/showcase.png'>
 
 ## About
@@ -18,15 +16,9 @@ My machine contains the following:
 
 
 ##### encoding
-##### With AVX512 (and non-mmap output)
 280.4ms for reading 14 MB and writing 730 MB.
  - read:  `49.929 MB/s`
  - write: `2639.087 MB/s`
-
-##### Without AVX512
-755.8ms for reading 14 MB and writing 730 MB.
- - read:  `18.523 MB/s`
- - write: `965.864 MB/s`
 
 ##### decoding
 545ms for reading 730 MB and writing 14 MB
