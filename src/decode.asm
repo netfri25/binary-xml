@@ -134,7 +134,7 @@ parse_input:
             dec r12
 
             .zero#counter:
-            add r12, zero.len
+            add r12, 7 ; length of "<zero/>"
         }
 
         mov byte [r14], cl
