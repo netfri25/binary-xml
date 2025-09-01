@@ -2,97 +2,147 @@
 format ELF64 executable
 entry _start
 
+OUTPUT_BUFFER_CAP equ (128 * 1024)
+INPUT_BUFFER_CAP equ (OUTPUT_BUFFER_CAP * 48)
+
+SYS_read equ 0
+SYS_write equ 1
+
+STDIN_FD equ 0
+STDOUT_FD equ 1
+
+segment readable writeable
+align 64
+output_buffer: rb OUTPUT_BUFFER_CAP
+
+; and the start of the input buffer is actually at `input_buffer + 2`.
+; this trick just simplifies the parsing by a lot
+; the 64 padding is to allow to safely copy the leftover using zmm0
+not_input_buffer: rb (INPUT_BUFFER_CAP + 2 + 64)
+input_buffer equ not_input_buffer + 2
+input_end equ input_buffer + INPUT_BUFFER_CAP
+
 segment readable executable
 _start:
-    call init_input
-    call mmap_input
+    ; initialize the start with some constant that allow simpler parsing
+    mov word [not_input_buffer], "/>"
 
-    ; rdx:rax / rcx
-    mov rdx, 0
-    mov rax, [input_len]
-    mov rcx, 8 * one.len
-    div rcx
-    mov [output_max_len], rax
+    ; constants used in the parse input
+    mov r8, qword "><zero/>"
+    mov r9, qword "/><one/>"
 
-    call init_output
-    call mmap_output
+    mov rsi, input_buffer
+    mov rdx, INPUT_BUFFER_CAP
 
-    mov rbx, [output_mapped_ptr] ; dst mapped addr
-    mov rsi, [input_mapped_ptr]  ; src mapped addr
+    .parse_loop:
+        call read_input_buffer
+        cmp r15, input_buffer
+        je exit
 
-    ; points to the end of the input
-    mov rdx, rsi
-    add rdx, [input_len]
+        mov r13, r15 ; input end ptr
+        cmp r15, input_end
+        jb .not_full
+        sub r13, 56
+        .not_full:
 
-    xor al, al
-    rept 8 counter {
-        mov rcx, qword [rsi]
-        cmp cx, "<z"
-        je .zero2#counter
-        cmp cx, "<o"
-        jne .parse_error
-        ; fallthrough to .one
+        mov r12, input_buffer
+        ; r13 already contains input end ptr
+        mov r14, output_buffer
+        call parse_input
 
-        ; .one:
-            or al, 1 shl (counter - 1)
+        ; r14 already contains output buffer end ptr
+        lea rdx, [r14 - output_buffer] ; output length
+        call flush_output_buffer
 
-            mov edi, "ne/>"
-            add rsi, one.len
-            jmp .verify_input2#counter
+        ; calculate the amount of data left
+        ; if there's no data left, exit
+        ; r15: actual input end ptr
+        ; r12: parsed input end ptr
+        mov rcx, r15
+        sub rcx, r12
+        jz exit
 
-        .zero2#counter:
-            shr rcx, 1 * 8
-            cmp ch, 'e'
+        ; copy the leftover content from the end to the start
+        ; r12 points to the end of the parsed content
+        vmovdqu64 zmm0, [r12]
+        vmovdqu64 [input_buffer], zmm0 ; TODO: this can be an aligned mov
+
+        ; pointer to the first empty char in the input buffer
+        lea rsi, [input_buffer + rcx]
+
+        ; amount of bytes left in the input buffer
+        mov rdx, INPUT_BUFFER_CAP
+        sub rdx, rcx
+
+        jmp .parse_loop
+
+
+; rdx: output len
+flush_output_buffer:
+    mov rax, SYS_write
+    mov rdi, STDOUT_FD
+    mov rsi, output_buffer
+    ; mov rdx, ...
+    syscall
+    cmp rax, 0
+    jl .error
+    ret
+.error:
+    mov rsi, write_error_msg.text
+    mov rdx, write_error_msg.len
+    jmp error
+
+
+; rsi: input ptr
+; rdx: amount of bytes to read
+; -> rax: number of bytes read
+; -> r15: input end ptr
+read_input_buffer:
+    mov rax, SYS_read
+    mov rdi, STDIN_FD
+    ; mov rsi, ...
+    ; mov rdx, ...
+    syscall
+    cmp rax, 0
+    jl .error
+    lea r15, [rsi + rax]
+    ret
+.error:
+    mov rsi, read_error_msg.text
+    mov rdx, read_error_msg.len
+    jmp error
+
+
+; r12: input ptr
+; r13: input end ptr
+; r14: output ptr
+; -> r12: parsed input end ptr
+; -> r13: unchanged
+; -> r14: output end ptr
+parse_input:
+    ; comparing 8 bytes at once. some comparisons may overlap a bit,
+    ; but it's much simpler than comparing 6/7 bytes.
+    ; this is correct since the input is initialized with "/>" in input_buffer-2
+    .read_byte:
+        xor cl, cl
+        rept 8 counter {
+            cmp qword [r12-1], r8
+            je .zero#counter
+            cmp qword [r12-2], r9
             jne .parse_error
+            or cl, 1 shl (counter - 1)
+            dec r12
 
-            mov edi, "ro/>"
-            add rsi, zero.len
-            ; jmp .verify_input
+            .zero#counter:
+            add r12, zero.len
+        }
 
-        .verify_input2#counter:
-            ; compares the last 4 bytes
-            shr rcx, 2 * 8
-            cmp edi, ecx
-            jne .parse_error
-    }
+        mov byte [r14], cl
+        inc r14
+        cmp r12, r13 ; check if the input has reached the end
+        jb .read_byte
 
-    mov byte [rbx], al
-    inc rbx
-    cmp rsi, rdx ; check if the input has reached the end
-    ja .parse_error
-    je .end
-
-    mov r8, "><zero/>"
-    mov r9, "/><one/>"
-
-.read_byte:
-    xor al, al
-    rept 8 counter {
-        cmp qword [rsi-1], r8
-        je .zero#counter
-        cmp qword [rsi-2], r9
-        jne .parse_error
-        or al, 1 shl (counter - 1)
-        dec rsi
-
-        .zero#counter:
-        add rsi, zero.len
-    }
-
-    mov byte [rbx], al
-    inc rbx
-    cmp rsi, rdx ; check if the input has reached the end
-    ja .parse_error
-    jne .read_byte
-
-.end:
-    sub rbx, [output_mapped_ptr]
-    mov [output_len], rbx
-    call deinit_input
-    call unmap_output
-    call truncate_output
-
-    jmp exit
+    ret
 
 .parse_error:
     mov rsi, parse_error.text
@@ -102,6 +152,14 @@ _start:
 segment readable
 parse_error:
 .text db "parse error", 10
+.len = $ - .text
+
+read_error_msg:
+.text db "can't read file", 10
+.len = $ - .text
+
+write_error_msg:
+.text db "can't write file", 10
 .len = $ - .text
 
 include 'common.asm'
