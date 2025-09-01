@@ -16,14 +16,14 @@ My machine contains the following:
 
 
 ##### encoding
-139.4ms for reading 14 MB and writing 730 MB.
- - read:  `100.430 MB/s`
- - write: `5236.729 MB/s`
+139.4ms for reading 14.39 MB and writing 736.88 MB.
+ - read:  `103.228 MB/s`
+ - write: `5286.083 MB/s`
 
 ##### decoding
-545ms for reading 730 MB and writing 14 MB
- - read:  `1339.450 MB/s`
- - write: `25.688 MB/s`
+103.3ms for reading 736.88 MB and writing 14.39 MB
+ - read:  `7133.398 MB/s`
+ - write: `193.303 MB/s`
 
 ## Getting Started
 
