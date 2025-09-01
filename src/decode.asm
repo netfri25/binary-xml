@@ -85,12 +85,8 @@ flush_output_buffer:
     ; mov rdx, ...
     syscall
     cmp rax, 0
-    jl .error
+    jl write_error
     ret
-.error:
-    mov rsi, write_error_msg.text
-    mov rdx, write_error_msg.len
-    jmp error
 
 
 ; rsi: input ptr
@@ -104,14 +100,9 @@ read_input_buffer:
     ; mov rdx, ...
     syscall
     cmp rax, 0
-    jl .error
+    jl read_error
     lea r15, [rsi + rax]
     ret
-.error:
-    mov rsi, read_error_msg.text
-    mov rdx, read_error_msg.len
-    jmp error
-
 
 ; r12: input ptr
 ; r13: input end ptr
@@ -152,14 +143,6 @@ parse_input:
 segment readable
 parse_error:
 .text db "parse error", 10
-.len = $ - .text
-
-read_error_msg:
-.text db "can't read file", 10
-.len = $ - .text
-
-write_error_msg:
-.text db "can't write file", 10
 .len = $ - .text
 
 include 'common.asm'

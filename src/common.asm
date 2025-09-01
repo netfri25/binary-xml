@@ -19,5 +19,24 @@ error:
     mov [error_code], 1
     jmp exit
 
+write_error:
+    mov rsi, write_error_msg.text
+    mov rdx, write_error_msg.len
+    jmp error
+
+read_error:
+    mov rsi, read_error_msg.text
+    mov rdx, read_error_msg.len
+    jmp error
+
 segment readable writeable
 error_code dq 0
+
+segment readable
+read_error_msg:
+.text db "can't read file", 10
+.len = $ - .text
+
+write_error_msg:
+.text db "can't write file", 10
+.len = $ - .text
