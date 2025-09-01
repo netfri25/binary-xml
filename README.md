@@ -3,6 +3,7 @@
 <img src='assets/showcase.png'>
 
 ## About
+###### inspired by [tsoding](https://x.com/tsoding/status/1920853382878642495)
 this project tries to give an answer for [embedding binary data in XML](https://stackoverflow.com/questions/19893/how-do-you-embed-binary-data-in-xml).
 it uses self-closing XML tags to represent the binary data.
 Hours were spent on this project to make sure that it as highly optimized as possible, and for that reason there are some [limitations](#dependencies).
