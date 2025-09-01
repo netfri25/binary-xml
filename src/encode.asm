@@ -30,7 +30,7 @@ _start:
         ; exit if no more bytes left, or print error when error occures
         cmp rax, 0
         je exit
-        jl .error
+        jl .read_error
 
         ; initialize pointers to the buffers
         mov rsi, input_buffer
@@ -66,22 +66,28 @@ _start:
         mov rdi, STDOUT_FD
         mov rsi, output_buffer
         syscall
-
+        cmp rax, 0
+        jl .write_error
         jmp .read_loop
 
-; won't fallthrough because of the `read` syscall
-
-.error:
+.read_error:
     mov rsi, read_error_msg.text
     mov rdx, read_error_msg.len
     jmp error
 
+.write_error:
+    mov rsi, write_error_msg.text
+    mov rdx, write_error_msg.len
+    jmp error
 
 segment readable
 read_error_msg:
 .text db "can't read file", 10
 .len = $ - .text
 
+write_error_msg:
+.text db "can't write file", 10
+.len = $ - .text
 
 include 'common.asm'
 include 'table.asm'
