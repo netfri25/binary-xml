@@ -23,7 +23,7 @@ My machine contains the following:
 ##### decoding
 103.3ms for reading 736.88 MB and writing 14.39 MB
  - read:  `7133.398 MB/s`
- - write: `193.303 MB/s`
+ - write: `139.303 MB/s`
 
 ## Getting Started
 
