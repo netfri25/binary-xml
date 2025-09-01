@@ -29,7 +29,7 @@ My machine contains the following:
 
 ### Dependencies
  - `x86-64` architecture
- - minimal linux version of 5.4
+ - linux kernel
  - fasm
  - make
  - cpu with [avx512](https://en.wikipedia.org/wiki/AVX-512#CPUs_with_AVX-512)
