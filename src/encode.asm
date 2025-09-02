@@ -33,30 +33,30 @@ _start:
         jl read_error
 
         ; initialize pointers to the buffers
-        mov rsi, input_buffer
+        mov r12, input_buffer
         mov rdi, output_buffer
 
         ; the amount of bytes read is the number of iterations
         mov rcx, rax
 
         .byte_loop:
-            movzx eax, byte [rsi]
+            movzx r8d, byte [r12]
 
             ; each item in the table is 64 bytes in size (56 maximum string length + 8 bytes for alignment).
             ; which is 2**6
-            shl eax, 6
+            shl r8d, 6
 
             ; copy from the table to the destination
-            vmovdqa64 zmm0, [table + eax]
+            vmovdqa64 zmm0, [table + r8d]
             vmovdqu64 [rdi], zmm0
 
             ; advance by the actual string length: 56 - popcnt
-            popcnt rax, rax
+            popcnt r8, r8
             add rdi, 56
-            sub rdi, rax
+            sub rdi, r8
 
             ; next byte
-            inc rsi
+            inc r12
             loop .byte_loop
 
 
