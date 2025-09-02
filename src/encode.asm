@@ -51,7 +51,7 @@ _start:
             vmovdqu64 [rdi], zmm0
 
             ; advance by the actual string length: 56 - popcnt
-            popcnt r8, r8
+            popcnt r8w, r8w
             add rdi, 56
             sub rdi, r8
 
