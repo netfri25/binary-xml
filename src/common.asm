@@ -1,4 +1,10 @@
 ; vim: set ft=fasm:
+SYS_read equ 0
+SYS_write equ 1
+
+STDIN_FD equ 0
+STDOUT_FD equ 1
+
 segment readable executable
 
 ; doesn't return

@@ -2,14 +2,10 @@
 format ELF64 executable
 entry _start
 
+include 'common.asm'
+
 OUTPUT_BUFFER_CAP equ (128 * 1024)
 INPUT_BUFFER_CAP equ (OUTPUT_BUFFER_CAP * 48)
-
-SYS_read equ 0
-SYS_write equ 1
-
-STDIN_FD equ 0
-STDOUT_FD equ 1
 
 segment readable writeable
 align 64
@@ -144,5 +140,3 @@ segment readable
 parse_error:
 .text db "parse error", 10
 .len = $ - .text
-
-include 'common.asm'

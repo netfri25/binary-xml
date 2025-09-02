@@ -2,14 +2,11 @@
 format ELF64 executable
 entry _start
 
+include 'common.asm'
+include 'table.asm'
+
 INPUT_BUFFER_CAP equ (128 * 1024)
 OUTPUT_BUFFER_CAP equ (INPUT_BUFFER_CAP * 56 + 8)
-
-SYS_read equ 0
-SYS_write equ 1
-
-STDIN_FD equ 0
-STDOUT_FD equ 1
 
 segment readable writeable
 align 64
@@ -69,6 +66,3 @@ _start:
         cmp rax, 0
         jl write_error
         jmp .read_loop
-
-include 'common.asm'
-include 'table.asm'
