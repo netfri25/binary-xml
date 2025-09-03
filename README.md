@@ -8,6 +8,28 @@ this project tries to give an answer for [embedding binary data in XML](https://
 it uses self-closing XML tags to represent the binary data.
 Hours were spent on this project to make sure that it as highly optimized as possible, and for that reason there are some [limitations](#dependencies).
 
+### Efficiency
+the efficiency of the encoding method can be calculated using the following equation:
+```
+1 - (encoded_size / original_size)
+```
+and when multiplied by 100, you get the percentage.
+
+best case: all ones
+```
+1 - 48 = -4700%
+```
+
+worst case: all zeros
+```
+1 - 56 = -5500%
+```
+
+average case: equal number of zeros and ones
+```
+1 - 52 = -5100%
+```
+
 ### Performance
 My machine contains the following:
  - Void Linux x86-64 (kernel version 6.12.41_1)
