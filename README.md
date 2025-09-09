@@ -30,6 +30,7 @@ Hours were spent on this project to make sure that it as highly optimized as pos
     * `pusha` (that it can't be used on 64 bit)
     * `vmovdqa64`
     * `vmovdqu64`
+    * `vpbroadcast`
     * `vperm`
     * `vpextr`
     * `vpgather`
@@ -37,6 +38,7 @@ Hours were spent on this project to make sure that it as highly optimized as pos
     * `vpopcnt`
     * `vpscatter`
     * `vpshuf`
+    * `vzeroall`
 
 ### Efficiency
 the efficiency of the encoding method can be calculated using the following equation:
