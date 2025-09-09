@@ -8,6 +8,36 @@ this project tries to give an answer for [embedding binary data in XML](https://
 it uses self-closing XML tags to represent the binary data.
 Hours were spent on this project to make sure that it as highly optimized as possible, and for that reason there are some [limitations](#dependencies).
 
+## What I've learned
+ - existence of `zmm` registers, as well as `k` mask registers (on cpus supporting avx512)
+ - ability to mmap redirected input/output, using `/proc/self/fd/{0,1}`
+ - how to use the `perf` program
+ - my own form of error handling in asm
+ - read/write with a big enough buffer are usually faster than other fancy syscalls
+ - syscalls
+    * `fork`
+    * `lseek`
+    * `madvise`
+    * `mmap`
+    * `munmap`
+    * `pwrite64`
+    * `pwritev`
+    * `writev`
+ - instructions
+    * `cmov`
+    * `movzx`
+    * `popcnt`
+    * `pusha` (that it can't be used on 64 bit)
+    * `vmovdqa64`
+    * `vmovdqu64`
+    * `vperm`
+    * `vpextr`
+    * `vpgather`
+    * `vpmovzx`
+    * `vpopcnt`
+    * `vpscatter`
+    * `vpshuf`
+
 ### Efficiency
 the efficiency of the encoding method can be calculated using the following equation:
 ```
